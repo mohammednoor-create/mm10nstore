@@ -13,7 +13,7 @@
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Icons (Lucide via unpkg for React is tricky in CDN, using FontAwesome for simplicity in single file) -->
+    <!-- Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <!-- Google Fonts -->
@@ -63,7 +63,12 @@ const PRODUCTS = [
         category: "الأكثر مبيعاً",
         description: "مطارة حرارية عالية الجودة تحفظ المشروبات الساخنة والباردة حتى 12 ساعة. يتم الرسم عليها يدوياً بالكامل بمواد ثابتة ومقاومة للماء، لتكون قطعة فنية ترافقك يومياً.",
         colors: [{ name: "أبيض كلاسيك", code: "#ffffff", border: true }, { name: "أسود مطفي", code: "#1a1a1a" }],
-        image: "https://www2.0zz0.com/2025/12/16/01/695883171.jpg"
+        // تم تحويل image إلى مصفوفة images لإضافة الصور الجديدة
+        images: [
+            "https://www2.0zz0.com/2025/12/16/01/695883171.jpg", // الرئيسية
+            "https://www2.0zz0.com/2025/12/16/01/541001937.jpg",
+            "https://www2.0zz0.com/2025/12/16/01/444559770.jpg"
+        ]
     },
     {
         id: 2,
@@ -75,7 +80,15 @@ const PRODUCTS = [
             { name: "أسود ملكي", code: "#000000" },
             { name: "أزرق نيلي", code: "#1e3a8a" }
         ],
-        image: "https://www2.0zz0.com/2025/12/16/01/392857456.jpg"
+        // تم إضافة صور الدفتر الجديدة هنا
+        images: [
+            "https://www2.0zz0.com/2025/12/16/01/392857456.jpg", // الرئيسية
+            "https://www2.0zz0.com/2025/12/16/01/560022903.jpg",
+            "https://www2.0zz0.com/2025/12/16/01/448406155.jpg",
+            "https://www2.0zz0.com/2025/12/16/01/765622544.jpg",
+            "https://www2.0zz0.com/2025/12/16/01/789713181.jpg",
+            "https://www2.0zz0.com/2025/12/16/01/333174233.jpg"
+        ]
     },
     {
         id: 3,
@@ -84,7 +97,7 @@ const PRODUCTS = [
         category: "قريباً",
         comingSoon: true,
         description: "دفتر أسود غامض برسومات دودل مستوحاة من شخصيات ومسلسلات محبوبة. تصميم مختلف كلياً، ناعم، مليء بالتفاصيل الفنية.",
-        image: "https://f.top4top.io/p_3653354hf1.png"
+        images: ["https://f.top4top.io/p_3653354hf1.png"]
     },
     {
         id: 4,
@@ -93,7 +106,7 @@ const PRODUCTS = [
         category: "قريباً",
         comingSoon: true,
         description: "دفتر فني باسمك مكتوب بأسلوب ملون جريء ومميز. ألوان، إحساس، ولمسة فنية غير تقليدية.",
-        image: "https://g.top4top.io/p_3653tnrob2.png" // Solid black image
+        images: ["https://g.top4top.io/p_3653tnrob2.png"] // Solid black image
     }
 ];
 
@@ -165,6 +178,9 @@ const Hero = () => (
 
 // 3. Product Card
 const ProductCard = ({ product, onSelect }) => {
+    // Show first image as cover
+    const mainImage = product.images && product.images.length > 0 ? product.images[0] : '';
+    
     return (
         <div 
             onClick={() => !product.comingSoon && onSelect(product)}
@@ -172,7 +188,7 @@ const ProductCard = ({ product, onSelect }) => {
         >
             <div className="relative aspect-[4/5] overflow-hidden bg-gray-100">
                 <img 
-                    src={product.image} 
+                    src={mainImage} 
                     alt={product.name}
                     className={`w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 ${product.comingSoon ? 'filter blur-[2px] grayscale' : ''}`}
                     onError={(e) => { e.target.src = 'https://via.placeholder.com/400x500?text=No+Image'; }}
@@ -197,6 +213,13 @@ const ProductCard = ({ product, onSelect }) => {
                         {product.category}
                     </span>
                 </div>
+
+                {/* Multi-image indicator */}
+                {product.images && product.images.length > 1 && !product.comingSoon && (
+                    <div className="absolute bottom-4 right-4 bg-black/50 backdrop-blur text-white text-xs px-2 py-1 rounded-md">
+                        <i className="fa-regular fa-images"></i> {product.images.length}
+                    </div>
+                )}
             </div>
 
             <div className="p-5 flex flex-col flex-grow">
@@ -224,14 +247,18 @@ const ProductCard = ({ product, onSelect }) => {
 // 4. Product Modal (Details & Add to Cart)
 const ProductModal = ({ product, isOpen, onClose, onAddToCart }) => {
     const [selectedColor, setSelectedColor] = useState(null);
+    const [currentImgIndex, setCurrentImgIndex] = useState(0);
 
     useEffect(() => {
         if (product && product.colors) {
             setSelectedColor(product.colors[0]);
         }
+        setCurrentImgIndex(0); // Reset image index on open
     }, [product]);
 
     if (!isOpen || !product) return null;
+
+    const images = product.images || [];
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -239,20 +266,57 @@ const ProductModal = ({ product, isOpen, onClose, onAddToCart }) => {
             <div className="bg-white rounded-3xl w-full max-w-4xl max-h-[90vh] overflow-y-auto relative z-10 shadow-2xl animate-float">
                 <button 
                     onClick={onClose}
-                    className="absolute top-4 right-4 bg-gray-100 hover:bg-gray-200 w-10 h-10 rounded-full flex items-center justify-center z-20 transition-colors"
+                    className="absolute top-4 right-4 bg-gray-100 hover:bg-gray-200 w-10 h-10 rounded-full flex items-center justify-center z-20 transition-colors shadow-sm"
                 >
                     <i className="fa-solid fa-xmark text-lg"></i>
                 </button>
 
                 <div className="grid md:grid-cols-2">
-                    <div className="bg-gray-100 h-64 md:h-auto relative">
-                        <img 
-                            src={product.image} 
-                            className="w-full h-full object-cover" 
-                            alt={product.name}
-                            onError={(e) => { e.target.src = 'https://via.placeholder.com/600x600?text=Image+Error'; }}
-                        />
+                    {/* Image Section */}
+                    <div className="bg-gray-100 flex flex-col">
+                        <div className="h-64 md:h-[400px] relative w-full overflow-hidden">
+                            <img 
+                                src={images[currentImgIndex]} 
+                                className="w-full h-full object-cover transition-all duration-300" 
+                                alt={product.name}
+                                onError={(e) => { e.target.src = 'https://via.placeholder.com/600x600?text=Image+Error'; }}
+                            />
+                            
+                            {/* Navigation Arrows if multiple images */}
+                            {images.length > 1 && (
+                                <>
+                                    <button 
+                                        onClick={(e) => { e.stopPropagation(); setCurrentImgIndex(prev => (prev === 0 ? images.length - 1 : prev - 1)); }}
+                                        className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-black w-8 h-8 rounded-full flex items-center justify-center shadow-md transition-all"
+                                    >
+                                        <i className="fa-solid fa-chevron-left"></i>
+                                    </button>
+                                    <button 
+                                        onClick={(e) => { e.stopPropagation(); setCurrentImgIndex(prev => (prev === images.length - 1 ? 0 : prev + 1)); }}
+                                        className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-black w-8 h-8 rounded-full flex items-center justify-center shadow-md transition-all"
+                                    >
+                                        <i className="fa-solid fa-chevron-right"></i>
+                                    </button>
+                                </>
+                            )}
+                        </div>
+                        
+                        {/* Thumbnails */}
+                        {images.length > 1 && (
+                            <div className="p-4 flex gap-2 overflow-x-auto scrollbar-hide bg-white border-t border-gray-100">
+                                {images.map((img, idx) => (
+                                    <button 
+                                        key={idx}
+                                        onClick={() => setCurrentImgIndex(idx)}
+                                        className={`w-16 h-16 rounded-lg overflow-hidden border-2 flex-shrink-0 transition-all ${currentImgIndex === idx ? 'border-orange-500 opacity-100' : 'border-transparent opacity-60 hover:opacity-100'}`}
+                                    >
+                                        <img src={img} className="w-full h-full object-cover" />
+                                    </button>
+                                ))}
+                            </div>
+                        )}
                     </div>
+
                     <div className="p-8 flex flex-col justify-center">
                         <span className="text-orange-500 font-bold mb-2 text-sm">{product.category}</span>
                         <h2 className="text-3xl font-black mb-4">{product.name}</h2>
@@ -382,7 +446,7 @@ const CartDrawer = ({ isOpen, onClose, cartItems, onRemoveItem }) => {
                                 {cartItems.map((item, idx) => (
                                     <div key={idx} className="flex gap-3 bg-white p-2 rounded-xl border border-gray-100">
                                         <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
-                                            <img src={item.image} className="w-full h-full object-cover" />
+                                            <img src={item.images[0]} className="w-full h-full object-cover" />
                                         </div>
                                         <div className="flex-1 flex flex-col justify-center">
                                             <h4 className="font-bold text-sm text-gray-800">{item.name}</h4>
