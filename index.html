@@ -1,641 +1,583 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>متجر محمدنور - فن يدوي 100%</title>
     
     <!-- React & ReactDOM -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    
-    <!-- Babel for JSX -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
-    
+    <!-- Icons (Lucide via unpkg for React is tricky in CDN, using FontAwesome for simplicity in single file) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet" />
+
     <style>
         body { font-family: 'Tajawal', sans-serif; }
-        /* Scrollbar hide utility */
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* Custom Animations */
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+        .animate-float { animation: float 6s ease-in-out infinite; }
+        
+        .glass-nav {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+        }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-900">
-    <div id="root"></div>
+<body class="bg-gray-50 text-gray-900 selection:bg-orange-200">
+<div id="root"></div>
 
-    <script type="text/babel">
-        const { useState, useEffect } = React;
+<script type="text/babel">
+const { useState, useEffect, useMemo } = React;
 
-        // --- ICONS COMPONENT (Replaces Lucide dependency) ---
-        const Icon = ({ path, size = 24, className = "", ...props }) => (
-            <svg 
-                xmlns="http://www.w3.org/2000/svg" 
-                width={size} 
-                height={size} 
-                viewBox="0 0 24 24" 
-                fill="none" 
-                stroke="currentColor" 
-                strokeWidth="2" 
-                strokeLinecap="round" 
-                strokeLinejoin="round" 
-                className={className} 
-                {...props}
-            >
-                <g dangerouslySetInnerHTML={{ __html: path }} />
-            </svg>
-        );
+/* ================= DATA & CONFIG ================= */
+const SHOP_INFO = {
+    name: "محمدنور",
+    full_name: "متجر محمدنور",
+    logo: "https://www2.0zz0.com/2025/12/19/06/254463518.jpg",
+    whatsapp: "9647766916836", // رقم الواتساب بدون +
+    instagram: "mm10n",
+    slogan: "نحوّل الأشياء العادية لفن",
+    currency: "د.ع"
+};
 
-        // Icon Paths
-        const icons = {
-            ShoppingBag: '<path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path>',
-            X: '<line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>',
-            Menu: '<line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line>',
-            ArrowRight: '<line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline>',
-            Instagram: '<rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>',
-            Phone: '<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>',
-            Palette: '<path d="M12 2a10 10 0 1 0 10 10 4 4 0 0 1-5-5c0-5.523-4.477-10-10-10z"></path><circle cx="8" cy="8" r="2"></circle><circle cx="12" cy="16" r="2"></circle><circle cx="16" cy="12" r="2"></circle><circle cx="8" cy="14" r="2"></circle>',
-            Gift: '<polyline points="20 12 20 22 4 22 4 12"></polyline><rect x="2" y="7" width="20" height="5"></rect><line x1="12" y1="22" x2="12" y2="7"></line><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path>',
-            Star: '<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>',
-            Truck: '<rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle>',
-            Paintbrush: '<path d="M18.375 2.625a5.5 5.5 0 0 0-7.5 0l-7 7a5.5 5.5 0 0 0 0 7.5L6 19.5l3.5 3.5 2.375-2.125a5.5 5.5 0 0 0 7.5 0l7-7a5.5 5.5 0 0 0 0-7.5z"></path><path d="m14 2.5 3.5 3.5"></path><path d="m9 15 4 4"></path><path d="m5 20 1.5 1.5"></path>'
-        };
+const PRODUCTS = [
+    {
+        id: 1,
+        name: "المطارة الحرارية ",
+        price: 12500,
+        category: "الأكثر مبيعاً",
+        description: "مطارة حرارية عالية الجودة تحفظ المشروبات الساخنة والباردة حتى 12 ساعة. يتم الرسم عليها يدوياً بالكامل بمواد ثابتة ومقاومة للماء، لتكون قطعة فنية ترافقك يومياً.",
+        colors: [{ name: "أبيض كلاسيك", code: "#ffffff", border: true }, { name: "أسود مطفي", code: "#1a1a1a" }],
+        image: "https://www2.0zz0.com/2025/12/16/01/695883171.jpg"
+    },
+    {
+        id: 2,
+        name: "الدفتر الفني المخصص",
+        price: 10000,
+        category: "للتميز",
+        description: "دفتر فاخر بغلاف مقوى، يتم رسم الاسم أو العبارة التي تختارها يدوياً بأسلوب فني أنيق. مثالي للدراسة، العمل، أو كهدية تحمل قيمة ومعنى.",
+        colors: [
+            { name: "أسود ملكي", code: "#000000" },
+            { name: "أزرق نيلي", code: "#1e3a8a" }
+        ],
+        image: "https://www2.0zz0.com/2025/12/16/01/392857456.jpg"
+    },
+    {
+        id: 3,
+        name: "دفتر دودل شخصيات",
+        price: 15000,
+        category: "قريباً",
+        comingSoon: true,
+        description: "دفتر أسود غامض برسومات دودل مستوحاة من شخصيات ومسلسلات محبوبة. تصميم مختلف كلياً، ناعم، مليء بالتفاصيل الفنية.",
+        image: "https://f.top4top.io/p_3653354hf1.png"
+    },
+    {
+        id: 4,
+        name: "دفتر اسم ملون",
+        price: 18000,
+        category: "قريباً",
+        comingSoon: true,
+        description: "دفتر فني باسمك مكتوب بأسلوب ملون جريء ومميز. ألوان، إحساس، ولمسة فنية غير تقليدية.",
+        image: "https://g.top4top.io/p_3653tnrob2.png" // Solid black image
+    }
+];
 
-        const ShoppingBag = (props) => <Icon path={icons.ShoppingBag} {...props} />;
-        const X = (props) => <Icon path={icons.X} {...props} />;
-        const ArrowRight = (props) => <Icon path={icons.ArrowRight} {...props} />;
-        const Instagram = (props) => <Icon path={icons.Instagram} {...props} />;
-        const Phone = (props) => <Icon path={icons.Phone} {...props} />;
-        const Palette = (props) => <Icon path={icons.Palette} {...props} />;
-        const Gift = (props) => <Icon path={icons.Gift} {...props} />;
-        const Star = (props) => <Icon path={icons.Star} {...props} />;
-        const Truck = (props) => <Icon path={icons.Truck} {...props} />;
-        const Paintbrush = (props) => <Icon path={icons.Paintbrush} {...props} />;
+const DELIVERY_RATES = [
+    { area: "الموصل", price: 3000 },
+    { area: "الأقضية والنواحي", price: 5000 },
+    { area: "باقي المحافظات", price: 6000 }
+];
 
-        // --- DATA ---
-        const products = [
-            {
-                id: 1,
-                name: "المطارة الحرارية الفاخرة",
-                price: 20000,
-                category: "أكثر مبيعاً",
-                description: "حافظة للحرارة والبرودة تدوم حتى 12 ساعة. يتم الرسم عليها يدوياً بمواد خاصة مقاومة للماء والثبات. قطعة فنية ترافقك يومياً.",
-                colors: [
-                    { name: "أبيض كلاسيك", code: "#ffffff", border: true }
-                ],
-                images: [
-                    "https://www2.0zz0.com/2025/12/16/01/695883171.jpg",
-                    "https://www2.0zz0.com/2025/12/16/01/541001937.jpg",
-                    "https://www2.0zz0.com/2025/12/16/01/444559770.jpg"
-                ]
-            },
-            {
-                id: 2,
-                name: "الدفتر الفني المخصص",
-                price: 20000,
-                category: "للتميز",
-                description: "دفتر مذكرات فاخر بغلاف مقوى، يُرسم عليه اسمك أو شعارك الخاص يدوياً. مثالي للجامعة، العمل، أو كهدية لا تُنسى.",
-                colors: [
-                    { name: "أسود ملكي", code: "#000000" },
-                    { name: "أزرق نيلي", code: "#1e3a8a" }
-                ],
-                images: [
-                    "https://www2.0zz0.com/2025/12/16/01/392857456.jpg",
-                    "https://www2.0zz0.com/2025/12/16/01/560022903.jpg",
-                    "https://www2.0zz0.com/2025/12/16/01/448406155.jpg",
-                    "https://www2.0zz0.com/2025/12/16/01/765622544.jpg",
-                    "https://www2.0zz0.com/2025/12/16/01/789713181.jpg",
-                    "https://www2.0zz0.com/2025/12/16/01/333174233.jpg"
-                ]
-            },
-            {
-                id: 3,
-                name: "كوب (مج) مرسوم يدوياً",
-                price: 15000,
-                category: "هدية مثالية",
-                description: "كوب سيراميك عالي الجودة، يحمل اسمك بلمسة فنية يدوية. متوفر بعدة ألوان لتناسب ذوقك.",
-                colors: [
-                    { name: "أبيض", code: "#ffffff", border: true },
-                    { name: "أسود", code: "#000000" },
-                    { name: "أصفر", code: "#fbbf24" },
-                    { name: "أحمر", code: "#ef4444" }
-                ],
-                images: [
-                    "https://www2.0zz0.com/2025/12/16/02/284261239.jpeg",
-                    "https://www2.0zz0.com/2025/12/16/01/839810488.jpg",
-                    "https://www2.0zz0.com/2025/12/16/01/223522284.jpg",
-                    "https://www2.0zz0.com/2025/12/16/01/570418431.jpg",
-                    "https://www2.0zz0.com/2025/12/16/01/670576044.jpg"
-                ]
-            }
-        ];
+/* ================= COMPONENTS ================= */
 
-        const SHOP_INFO = {
-            name: "متجر محمدنور",
-            logo: "https://www2.0zz0.com/2025/12/19/06/254463518.jpg",
-            whatsapp: "9647766916836",
-            instagram: "mm10n",
-            slogan: "اسمك… مرسوم بإحساس، مو مطبوع بلا روح"
-        };
-
-        // --- COMPONENTS ---
-
-        const Button = ({ children, onClick, variant = 'primary', className = '', fullWidth = false }) => {
-            const baseStyle = "px-6 py-3 rounded-xl font-bold transition-all duration-300 transform active:scale-95 flex items-center justify-center gap-2 shadow-lg";
-            const variants = {
-                primary: "bg-orange-500 hover:bg-orange-600 text-white shadow-orange-500/30",
-                secondary: "bg-gray-900 hover:bg-gray-800 text-white shadow-gray-900/30",
-                outline: "border-2 border-gray-900 text-gray-900 hover:bg-gray-50",
-                ghost: "text-gray-600 hover:bg-gray-100 shadow-none"
-            };
+// 1. Navbar Component
+const Navbar = ({ cartCount, onOpenCart }) => (
+    <nav className="fixed top-0 w-full glass-nav shadow-sm z-40 transition-all duration-300">
+        <div className="container mx-auto px-4 h-20 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+                <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center shadow-sm border border-orange-100">
+                    <img src={SHOP_INFO.logo} alt={SHOP_INFO.name} className="w-full h-full object-cover" />
+                </div>
+                <h1 className="text-2xl font-black tracking-tight">
+                    {SHOP_INFO.name}<span className="text-orange-500">.</span>
+                </h1>
+            </div>
             
-            return (
-                <button 
-                    onClick={onClick} 
-                    className={`${baseStyle} ${variants[variant]} ${fullWidth ? 'w-full' : ''} ${className}`}
-                >
-                    {children}
-                </button>
-            );
-        };
+            <button 
+                onClick={onOpenCart}
+                className="relative p-2 hover:bg-gray-100 rounded-full transition-colors duration-300 group"
+            >
+                <i className="fa-solid fa-shopping-bag text-2xl text-gray-700 group-hover:text-orange-600"></i>
+                {cartCount > 0 && (
+                    <span className="absolute top-0 right-0 bg-orange-500 text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full animate-bounce">
+                        {cartCount}
+                    </span>
+                )}
+            </button>
+        </div>
+    </nav>
+);
 
-        const Header = ({ cartCount, openCart, goHome }) => (
-            <header className="fixed top-0 w-full z-50 bg-white/90 backdrop-blur-md border-b border-gray-100 shadow-sm">
-                <div className="container mx-auto px-4 h-20 flex justify-between items-center">
-                    <div className="flex items-center gap-2 cursor-pointer" onClick={goHome}>
-                        <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-gray-900">
-                            <img src={SHOP_INFO.logo} alt="Logo" className="w-full h-full object-cover" />
-                        </div>
-                        <h1 className="font-bold text-xl md:text-2xl tracking-tighter text-gray-900">محمد<span className="text-orange-500">نور</span></h1>
+// 2. Hero Component
+const Hero = () => (
+    <section className="bg-gray-900 text-white relative overflow-hidden pt-32 pb-20 px-4">
+        {/* Background Pattern */}
+        <div className="absolute inset-0 opacity-10" style={{backgroundImage: 'radial-gradient(circle, #ffffff 1px, transparent 1px)', backgroundSize: '30px 30px'}}></div>
+        
+        <div className="container mx-auto text-center relative z-10">
+            <span className="inline-block py-1 px-3 rounded-full bg-orange-500/20 text-orange-300 text-sm font-bold mb-6 border border-orange-500/30">
+                ✨ فن يدوي 100%
+            </span>
+            <h2 className="text-4xl md:text-6xl font-black mb-6 leading-tight">
+                {SHOP_INFO.slogan}
+            </h2>
+            <p className="text-gray-300 max-w-2xl mx-auto mb-10 text-lg leading-relaxed">
+                نحول أدواتك اليومية إلى قطع فنية فريدة تعبر عن شخصيتك. كل قطعة تُرسم يدوياً بعناية وإحساس.
+            </p>
+            
+            <div className="flex flex-col md:flex-row gap-4 justify-center items-center">
+                <a href="#products" className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-4 rounded-xl font-bold transition-all shadow-lg hover:shadow-orange-500/30 flex items-center gap-2">
+                    تصفح المنتجات <i className="fa-solid fa-arrow-down"></i>
+                </a>
+                <div className="flex items-center gap-2 text-green-400 bg-green-900/30 px-6 py-4 rounded-xl border border-green-500/30">
+                    <i className="fa-solid fa-gift"></i>
+                    <span>سحب على 100,000 د.ع مع كل طلب</span>
+                </div>
+            </div>
+        </div>
+    </section>
+);
+
+// 3. Product Card
+const ProductCard = ({ product, onSelect }) => {
+    return (
+        <div 
+            onClick={() => !product.comingSoon && onSelect(product)}
+            className={`group bg-white rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden border border-gray-100 cursor-pointer flex flex-col h-full ${product.comingSoon ? 'opacity-75 cursor-default' : ''}`}
+        >
+            <div className="relative aspect-[4/5] overflow-hidden bg-gray-100">
+                <img 
+                    src={product.image} 
+                    alt={product.name}
+                    className={`w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 ${product.comingSoon ? 'filter blur-[2px] grayscale' : ''}`}
+                    onError={(e) => { e.target.src = 'https://via.placeholder.com/400x500?text=No+Image'; }}
+                />
+                
+                {product.comingSoon ? (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                        <span className="bg-black text-white px-6 py-2 rounded-full font-bold backdrop-blur-md border border-white/20">
+                            قريباً
+                        </span>
                     </div>
-                    
-                    <div className="flex items-center gap-4">
-                        <a href={`https://instagram.com/${SHOP_INFO.instagram}`} target="_blank" rel="noreferrer" className="hidden md:flex text-gray-600 hover:text-purple-600 transition-colors">
-                            <Instagram size={24} />
-                        </a>
-                        <button onClick={openCart} className="relative p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors group">
-                            <ShoppingBag size={24} className="text-gray-800 group-hover:text-orange-500 transition-colors" />
-                            {cartCount > 0 && (
-                                <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full animate-bounce">
-                                    {cartCount}
-                                </span>
-                            )}
+                ) : (
+                    <div className="absolute bottom-4 left-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 transform translate-y-4 group-hover:translate-y-0">
+                        <button className="bg-white text-black w-10 h-10 rounded-full flex items-center justify-center shadow-lg hover:bg-orange-500 hover:text-white transition-colors">
+                            <i className="fa-solid fa-eye"></i>
                         </button>
                     </div>
-                </div>
-            </header>
-        );
-
-        const Hero = ({ scrollToProducts }) => (
-            <div className="relative min-h-[85vh] flex items-center justify-center bg-gray-900 text-white overflow-hidden pt-20">
-                <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
-                <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-transparent to-transparent"></div>
+                )}
                 
-                <div className="container mx-auto px-4 relative z-10 text-center">
-                    <div className="inline-block mb-4 px-4 py-1 rounded-full bg-orange-500/20 border border-orange-500/50 text-orange-300 text-sm font-medium animate-pulse">
-                        ✨ فن يدوي 100%
-                    </div>
-                    <h1 className="text-5xl md:text-7xl font-black mb-6 leading-tight">
-                        {SHOP_INFO.slogan.split('،')[0]}<br />
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-amber-200">
-                            {SHOP_INFO.slogan.split('،')[1] || "مو مطبوع بلا روح"}
-                        </span>
-                    </h1>
-                    <p className="text-gray-400 text-lg md:text-xl max-w-2xl mx-auto mb-10 leading-relaxed">
-                        نحول الأدوات اليومية إلى تحف فنية. رسومات يدوية مخصصة تعكس هويتك وتضيف لمسة فخامة على مقتنياتك.
-                    </p>
-                    <div className="flex flex-col sm:flex-row justify-center gap-4">
-                        <Button onClick={scrollToProducts} className="text-lg px-8 py-4">
-                            تصفح المجموعة الحصرية <ArrowRight size={20} />
-                        </Button>
-                    </div>
-                </div>
-            </div>
-        );
-
-        const ProductCard = ({ product, onSelect }) => (
-            <div onClick={() => onSelect(product)} className="group bg-white rounded-3xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer border border-gray-100 hover:border-orange-200 transform hover:-translate-y-2">
-                <div className="relative aspect-[4/5] overflow-hidden bg-gray-100">
-                    <img 
-                        src={product.images[0]} 
-                        alt={product.name} 
-                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
-                    />
-                    <div className="absolute top-4 right-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-xs font-bold shadow-sm">
+                <div className="absolute top-4 right-4">
+                     <span className="bg-white/90 backdrop-blur text-xs font-bold px-3 py-1 rounded-full shadow-sm">
                         {product.category}
-                    </div>
-                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <span className="bg-white text-gray-900 px-6 py-2 rounded-full font-bold transform translate-y-4 group-hover:translate-y-0 transition-transform">
-                            صمم الآن
-                        </span>
-                    </div>
-                </div>
-                <div className="p-6">
-                    <div className="flex justify-between items-start mb-2">
-                        <h3 className="text-xl font-bold text-gray-900 group-hover:text-orange-500 transition-colors">{product.name}</h3>
-                    </div>
-                    <div className="flex justify-between items-center mt-4">
-                        <span className="text-2xl font-black text-gray-900 font-mono">
-                            {product.price.toLocaleString()} <span className="text-sm font-normal text-gray-500">د.ع</span>
-                        </span>
-                        <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-orange-500 group-hover:text-white transition-all">
-                            <Palette size={20} />
-                        </div>
-                    </div>
+                    </span>
                 </div>
             </div>
-        );
 
-        const Features = () => (
-            <div className="bg-gray-50 py-16">
-                <div className="container mx-auto px-4">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                        <div className="bg-white p-8 rounded-2xl shadow-sm text-center">
-                            <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <Paintbrush size={32} />
-                            </div>
-                            <h3 className="text-xl font-bold mb-2">رسم يدوي 100%</h3>
-                            <p className="text-gray-500">فنانون محترفون يقومون بالرسم يدوياً وليس طباعة رقمية.</p>
-                        </div>
-                        <div className="bg-white p-8 rounded-2xl shadow-sm text-center">
-                            <div className="w-16 h-16 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <Truck size={32} />
-                            </div>
-                            <h3 className="text-xl font-bold mb-2">توصيل مجاني</h3>
-                            <p className="text-gray-500">شحن مجاني وسريع لجميع محافظات العراق.</p>
-                        </div>
-                        <div className="bg-white p-8 rounded-2xl shadow-sm text-center">
-                            <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <Gift size={32} />
-                            </div>
-                            <h3 className="text-xl font-bold mb-2">تغليف فاخر</h3>
-                            <p className="text-gray-500">تصلك المنتجات مغلفة بعناية لتكون أجمل هدية.</p>
-                        </div>
-                    </div>
+            <div className="p-5 flex flex-col flex-grow">
+                <h3 className="text-lg font-bold mb-1 group-hover:text-orange-600 transition-colors">
+                    {product.name}
+                </h3>
+                <p className="text-gray-500 text-sm line-clamp-2 mb-4 flex-grow">
+                    {product.description}
+                </p>
+                <div className="flex items-center justify-between mt-auto">
+                    <span className="text-xl font-black text-gray-900">
+                        {product.price.toLocaleString()} {SHOP_INFO.currency}
+                    </span>
+                    {!product.comingSoon && (
+                        <span className="text-orange-500 text-sm font-bold flex items-center gap-1 group-hover:translate-x-[-5px] transition-transform">
+                            طلب الآن <i className="fa-solid fa-arrow-left"></i>
+                        </span>
+                    )}
                 </div>
             </div>
-        );
+        </div>
+    );
+};
 
-        // --- APP MAIN COMPONENT ---
+// 4. Product Modal (Details & Add to Cart)
+const ProductModal = ({ product, isOpen, onClose, onAddToCart }) => {
+    const [selectedColor, setSelectedColor] = useState(null);
 
-        function App() {
-            const [view, setView] = useState('home'); 
-            const [activeProduct, setActiveProduct] = useState(null);
-            const [cart, setCart] = useState([]);
-            const [isCartOpen, setIsCartOpen] = useState(false);
+    useEffect(() => {
+        if (product && product.colors) {
+            setSelectedColor(product.colors[0]);
+        }
+    }, [product]);
 
-            const [formState, setFormState] = useState({
-                name: '',
-                color: '',
-                language: 'عربي',
-                type: 'اسم فقط',
-                notes: '',
-            });
+    if (!isOpen || !product) return null;
 
-            const [currentImageIndex, setCurrentImageIndex] = useState(0);
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity" onClick={onClose}></div>
+            <div className="bg-white rounded-3xl w-full max-w-4xl max-h-[90vh] overflow-y-auto relative z-10 shadow-2xl animate-float">
+                <button 
+                    onClick={onClose}
+                    className="absolute top-4 right-4 bg-gray-100 hover:bg-gray-200 w-10 h-10 rounded-full flex items-center justify-center z-20 transition-colors"
+                >
+                    <i className="fa-solid fa-xmark text-lg"></i>
+                </button>
 
-            const scrollToProducts = () => {
-                const section = document.getElementById('products-section');
-                if (section) section.scrollIntoView({ behavior: 'smooth' });
-            };
+                <div className="grid md:grid-cols-2">
+                    <div className="bg-gray-100 h-64 md:h-auto relative">
+                        <img 
+                            src={product.image} 
+                            className="w-full h-full object-cover" 
+                            alt={product.name}
+                            onError={(e) => { e.target.src = 'https://via.placeholder.com/600x600?text=Image+Error'; }}
+                        />
+                    </div>
+                    <div className="p-8 flex flex-col justify-center">
+                        <span className="text-orange-500 font-bold mb-2 text-sm">{product.category}</span>
+                        <h2 className="text-3xl font-black mb-4">{product.name}</h2>
+                        <p className="text-gray-600 leading-relaxed mb-6">
+                            {product.description}
+                        </p>
 
-            const handleProductSelect = (product) => {
-                setActiveProduct(product);
-                setFormState({
-                    name: '',
-                    color: product.colors[0].name,
-                    language: 'عربي',
-                    type: 'اسم فقط',
-                    notes: ''
-                });
-                setCurrentImageIndex(0);
-                setView('product');
-                window.scrollTo(0, 0);
-            };
-
-            const handleAddToCart = () => {
-                if (!formState.name.trim()) {
-                    alert("الرجاء كتابة الاسم المطلوب رسمه");
-                    return;
-                }
-
-                const newItem = {
-                    id: Date.now(),
-                    product: activeProduct,
-                    details: { ...formState }
-                };
-
-                setCart([...cart, newItem]);
-                setView('home');
-                setIsCartOpen(true);
-            };
-
-            const removeFromCart = (id) => {
-                setCart(cart.filter(item => item.id !== id));
-            };
-
-            const calculateTotal = () => {
-                return cart.reduce((acc, item) => acc + item.product.price, 0);
-            };
-
-            const handleCheckout = () => {
-                const total = calculateTotal();
-                
-                let message = `*طلب جديد من متجر محمدنور* 🎨\n`;
-                message += `----------------\n`;
-                
-                cart.forEach((item, index) => {
-                    message += `\n📦 *المنتج ${index + 1}:* ${item.product.name}`;
-                    message += `\n✍ *الاسم:* ${item.details.name}`;
-                    message += `\n🎨 *اللون:* ${item.details.color}`;
-                    message += `\n🗣 *اللغة:* ${item.details.language}`;
-                    message += `\n📋 *النوع:* ${item.details.type}`;
-                    if (item.details.notes) message += `\n📝 *ملاحظات:* ${item.details.notes}`;
-                    message += `\n💰 *السعر:* ${item.product.price.toLocaleString()} د.ع\n`;
-                });
-
-                message += `\n----------------\n`;
-                message += `💵 *المجموع الكلي:* ${total.toLocaleString()} د.ع\n`;
-                message += `🚚 *التوصيل:* مجاني لجميع المحافظات\n`;
-                message += `📍 *العنوان:* (يرجى كتابة العنوان هنا)`;
-
-                const url = `https://wa.me/${SHOP_INFO.whatsapp}?text=${encodeURIComponent(message)}`;
-                window.open(url, '_blank');
-            };
-
-            return (
-                <div className="min-h-screen flex flex-col">
-                    <Header 
-                        cartCount={cart.length} 
-                        openCart={() => setIsCartOpen(true)} 
-                        goHome={() => setView('home')} 
-                    />
-
-                    <main className="pt-20 flex-grow">
-                        
-                        {view === 'home' && (
-                            <>
-                                <Hero scrollToProducts={scrollToProducts} />
-                                
-                                <div id="products-section" className="container mx-auto px-4 py-20">
-                                    <div className="text-center mb-16">
-                                        <span className="text-orange-500 font-bold tracking-wider uppercase mb-2 block">مجموعتنا الحصرية</span>
-                                        <h2 className="text-3xl md:text-5xl font-bold text-gray-900">اختر هديتك المميزة</h2>
-                                    </div>
-                                    
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                                        {products.map(product => (
-                                            <ProductCard key={product.id} product={product} onSelect={handleProductSelect} />
-                                        ))}
-                                    </div>
+                        {/* Colors */}
+                        {product.colors && (
+                            <div className="mb-8">
+                                <h4 className="font-bold mb-3 text-sm text-gray-400 uppercase tracking-wider">اختر اللون</h4>
+                                <div className="flex gap-3">
+                                    {product.colors.map((color, idx) => (
+                                        <button
+                                            key={idx}
+                                            onClick={() => setSelectedColor(color)}
+                                            className={`w-10 h-10 rounded-full border-2 transition-all flex items-center justify-center ${selectedColor?.name === color.name ? 'border-orange-500 scale-110' : 'border-transparent hover:scale-105'}`}
+                                            title={color.name}
+                                        >
+                                            <span 
+                                                className={`w-8 h-8 rounded-full block shadow-sm ${color.border ? 'border border-gray-200' : ''}`}
+                                                style={{ backgroundColor: color.code }}
+                                            ></span>
+                                        </button>
+                                    ))}
                                 </div>
-
-                                <Features />
-                            </>
+                                <p className="mt-2 text-sm text-gray-500">اللون المختار: <span className="font-bold text-gray-800">{selectedColor?.name}</span></p>
+                            </div>
                         )}
 
-                        {view === 'product' && activeProduct && (
-                            <div className="container mx-auto px-4 py-8 animate-in fade-in zoom-in duration-300">
-                                <button onClick={() => setView('home')} className="mb-6 flex items-center text-gray-500 hover:text-gray-900">
-                                    <ArrowRight className="ml-2" size={20} /> العودة للمتجر
-                                </button>
+                        <div className="flex items-center justify-between border-t pt-6 mt-auto">
+                            <div className="text-3xl font-black">
+                                {product.price.toLocaleString()} <span className="text-base font-normal text-gray-500">{SHOP_INFO.currency}</span>
+                            </div>
+                            <button 
+                                onClick={() => {
+                                    onAddToCart({ ...product, selectedColor });
+                                    onClose();
+                                }}
+                                className="bg-black text-white px-8 py-3 rounded-xl font-bold hover:bg-orange-500 transition-colors flex items-center gap-2 shadow-lg"
+                            >
+                                <i className="fa-solid fa-cart-plus"></i> إضافة للسلة
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
 
-                                <div className="bg-white rounded-3xl shadow-xl overflow-hidden grid grid-cols-1 lg:grid-cols-2">
-                                    <div className="bg-gray-100 p-4 md:p-8 flex flex-col items-center justify-center relative">
-                                        <div className="relative w-full aspect-[4/5] rounded-2xl overflow-hidden shadow-lg mb-4">
-                                            <img 
-                                                src={activeProduct.images[currentImageIndex]} 
-                                                alt={activeProduct.name} 
-                                                className="w-full h-full object-cover transition-all duration-500"
-                                            />
+// 5. Cart Drawer
+const CartDrawer = ({ isOpen, onClose, cartItems, onRemoveItem }) => {
+    // Form State
+    const [customerName, setCustomerName] = useState("");
+    const [customerPhone, setCustomerPhone] = useState("");
+    const [selectedDelivery, setSelectedDelivery] = useState(DELIVERY_RATES[0]);
+    const [address, setAddress] = useState("");
+
+    const subtotal = cartItems.reduce((acc, item) => acc + item.price, 0);
+    const total = subtotal + selectedDelivery.price;
+
+    const handleWhatsAppCheckout = () => {
+        if (cartItems.length === 0) return;
+        
+        if (!customerName || !customerPhone || !address) {
+            alert("يرجى ملء جميع الحقول المطلوبة (الاسم، الهاتف، العنوان)");
+            return;
+        }
+
+        let message = `*طلب جديد من ${SHOP_INFO.name}* 🎨\n\n`;
+        
+        message += `*📋 معلومات العميل:*\n`;
+        message += `👤 الاسم: ${customerName}\n`;
+        message += `📱 الهاتف: ${customerPhone}\n`;
+        message += `📍 منطقة التوصيل: ${selectedDelivery.area}\n`;
+        message += `🏠 العنوان/نقطة دالة: ${address}\n\n`;
+        
+        message += `*🛒 المنتجات:*\n`;
+        cartItems.forEach((item, index) => {
+            message += `${index + 1}. ${item.name} \n   └ اللون: ${item.selectedColor?.name || 'افتراضي'} \n   └ السعر: ${item.price.toLocaleString()}\n`;
+        });
+        
+        message += `\n------------------\n`;
+        message += `💵 قيمة المنتجات: ${subtotal.toLocaleString()}\n`;
+        message += `🚚 التوصيل (${selectedDelivery.area}): ${selectedDelivery.price.toLocaleString()}\n`;
+        message += `💰 *المبلغ الكلي للدفع: ${total.toLocaleString()} ${SHOP_INFO.currency}*\n`;
+
+        const url = `https://wa.me/${SHOP_INFO.whatsapp}?text=${encodeURIComponent(message)}`;
+        window.open(url, '_blank');
+    };
+
+    return (
+        <>
+            {/* Backdrop */}
+            <div 
+                className={`fixed inset-0 bg-black/50 backdrop-blur-sm z-50 transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+                onClick={onClose}
+            ></div>
+
+            {/* Drawer */}
+            <div className={`fixed top-0 left-0 h-full w-full max-w-md bg-white z-50 shadow-2xl transform transition-transform duration-300 flex flex-col ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+                <div className="p-4 border-b flex items-center justify-between bg-gray-50">
+                    <h2 className="text-xl font-black flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full overflow-hidden shadow-sm border border-orange-100">
+                            <img src={SHOP_INFO.logo} alt={SHOP_INFO.name} className="w-full h-full object-cover" />
+                        </div>
+                        إكمال الطلب
+                    </h2>
+                    <button onClick={onClose} className="w-8 h-8 rounded-full hover:bg-gray-200 flex items-center justify-center transition-colors">
+                        <i className="fa-solid fa-times"></i>
+                    </button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-4 scrollbar-hide">
+                    {cartItems.length === 0 ? (
+                        <div className="h-full flex flex-col items-center justify-center text-gray-400 space-y-4">
+                            <i className="fa-solid fa-basket-shopping text-6xl opacity-20"></i>
+                            <p>السلة فارغة حالياً</p>
+                            <button onClick={onClose} className="text-orange-500 font-bold hover:underline">تصفح المنتجات</button>
+                        </div>
+                    ) : (
+                        <div className="space-y-6">
+                            {/* Products List */}
+                            <div className="space-y-3">
+                                <h3 className="font-bold text-gray-700 text-sm">1. المنتجات المختارة</h3>
+                                {cartItems.map((item, idx) => (
+                                    <div key={idx} className="flex gap-3 bg-white p-2 rounded-xl border border-gray-100">
+                                        <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                                            <img src={item.image} className="w-full h-full object-cover" />
                                         </div>
-                                        <div className="flex gap-2 overflow-x-auto w-full pb-2 scrollbar-hide">
-                                            {activeProduct.images.map((img, idx) => (
-                                                <button 
-                                                    key={idx}
-                                                    onClick={() => setCurrentImageIndex(idx)}
-                                                    className={`min-w-[60px] h-[60px] rounded-lg overflow-hidden border-2 transition-all ${currentImageIndex === idx ? 'border-orange-500 scale-105' : 'border-transparent opacity-70'}`}
-                                                >
-                                                    <img src={img} alt="" className="w-full h-full object-cover" />
+                                        <div className="flex-1 flex flex-col justify-center">
+                                            <h4 className="font-bold text-sm text-gray-800">{item.name}</h4>
+                                            <p className="text-xs text-gray-500">اللون: {item.selectedColor?.name}</p>
+                                            <div className="flex justify-between items-center mt-1">
+                                                <span className="font-bold text-orange-600 text-sm">{item.price.toLocaleString()}</span>
+                                                <button onClick={() => onRemoveItem(idx)} className="text-red-400 hover:text-red-600">
+                                                    <i className="fa-solid fa-trash-can text-xs"></i>
                                                 </button>
-                                            ))}
+                                            </div>
                                         </div>
                                     </div>
-
-                                    <div className="p-6 md:p-10 flex flex-col">
-                                        <div className="mb-6">
-                                            <div className="flex items-center gap-2 mb-2">
-                                                <span className="bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-xs font-bold">الأكثر طلباً</span>
-                                                <div className="flex text-yellow-400">
-                                                    <Star size={16} fill="currentColor" />
-                                                    <Star size={16} fill="currentColor" />
-                                                    <Star size={16} fill="currentColor" />
-                                                    <Star size={16} fill="currentColor" />
-                                                    <Star size={16} fill="currentColor" />
-                                                </div>
-                                            </div>
-                                            <h1 className="text-3xl font-bold text-gray-900 mb-2">{activeProduct.name}</h1>
-                                            <p className="text-gray-500 leading-relaxed mb-4">{activeProduct.description}</p>
-                                            <div className="flex items-center gap-2 text-2xl font-bold text-gray-900">
-                                                {activeProduct.price.toLocaleString()} د.ع
-                                                <span className="text-sm font-normal text-green-600 bg-green-50 px-2 py-1 rounded-lg">توصيل مجاني</span>
-                                            </div>
-                                        </div>
-
-                                        <div className="h-px bg-gray-100 mb-8"></div>
-
-                                        <div className="space-y-6 flex-grow">
-                                            
-                                            <div>
-                                                <label className="block text-sm font-bold text-gray-700 mb-3">لون المنتج</label>
-                                                <div className="flex flex-wrap gap-3">
-                                                    {activeProduct.colors.map((color) => (
-                                                        <button
-                                                            key={color.name}
-                                                            onClick={() => setFormState({...formState, color: color.name})}
-                                                            className={`flex items-center gap-2 px-4 py-2 rounded-xl border-2 transition-all ${formState.color === color.name ? 'border-orange-500 bg-orange-50 text-orange-700' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}
-                                                        >
-                                                            <span 
-                                                                className={`w-4 h-4 rounded-full ${color.border ? 'border border-gray-300' : ''}`}
-                                                                style={{ backgroundColor: color.code }}
-                                                            ></span>
-                                                            {color.name}
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            </div>
-
-                                            <div>
-                                                <label className="block text-sm font-bold text-gray-700 mb-3">نوع التخصيص</label>
-                                                <div className="grid grid-cols-2 gap-3">
-                                                    {['اسم فقط', 'طلب خاص (رسم + اسم)'].map(type => (
-                                                        <div 
-                                                            key={type}
-                                                            onClick={() => setFormState({...formState, type})}
-                                                            className={`cursor-pointer px-4 py-3 rounded-xl border-2 text-center transition-all ${formState.type === type ? 'border-blue-500 bg-blue-50 text-blue-700 font-bold' : 'border-gray-200 text-gray-500 hover:bg-gray-50'}`}
-                                                        >
-                                                            {type}
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-
-                                            <div>
-                                                <label className="block text-sm font-bold text-gray-700 mb-2">الاسم المطلوب كتابته</label>
-                                                <input 
-                                                    type="text" 
-                                                    value={formState.name}
-                                                    onChange={(e) => setFormState({...formState, name: e.target.value})}
-                                                    placeholder="اكتب الاسم هنا..."
-                                                    className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-xl focus:border-orange-500 focus:outline-none transition-colors"
-                                                />
-                                            </div>
-
-                                            <div>
-                                                <label className="block text-sm font-bold text-gray-700 mb-3">لغة الكتابة</label>
-                                                <div className="flex gap-4">
-                                                    {['عربي', 'English'].map(lang => (
-                                                        <label key={lang} className="flex items-center gap-2 cursor-pointer group">
-                                                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${formState.language === lang ? 'border-orange-500' : 'border-gray-300'}`}>
-                                                                {formState.language === lang && <div className="w-2.5 h-2.5 rounded-full bg-orange-500"></div>}
-                                                            </div>
-                                                            <span className="text-gray-700 font-medium group-hover:text-orange-500 transition-colors">{lang}</span>
-                                                            <input 
-                                                                type="radio" 
-                                                                name="language" 
-                                                                className="hidden"
-                                                                checked={formState.language === lang}
-                                                                onChange={() => setFormState({...formState, language: lang})}
-                                                            />
-                                                        </label>
-                                                    ))}
-                                                </div>
-                                            </div>
-
-                                            <div>
-                                                <label className="block text-sm font-bold text-gray-700 mb-2">ملاحظات إضافية (اختياري)</label>
-                                                <textarea 
-                                                    value={formState.notes}
-                                                    onChange={(e) => setFormState({...formState, notes: e.target.value})}
-                                                    placeholder={formState.type.includes('خاص') ? "صف الرسمة التي تريدها..." : "أي تعليمات خاصة..."}
-                                                    className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-xl focus:border-orange-500 focus:outline-none transition-colors h-24 resize-none"
-                                                ></textarea>
-                                            </div>
-
-                                        </div>
-
-                                        <div className="mt-8">
-                                            <Button fullWidth onClick={handleAddToCart}>
-                                                إضافة للسلة - {activeProduct.price.toLocaleString()} د.ع
-                                            </Button>
-                                        </div>
-
-                                    </div>
-                                </div>
+                                ))}
                             </div>
-                        )}
 
-                    </main>
-
-                    {isCartOpen && (
-                        <div className="fixed inset-0 z-[60] flex justify-end">
-                            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setIsCartOpen(false)}></div>
-                            <div className="relative w-full max-w-md bg-white h-full shadow-2xl flex flex-col animate-in slide-in-from-left duration-300">
-                                <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-                                    <h2 className="text-xl font-bold flex items-center gap-2">
-                                        <ShoppingBag className="text-orange-500" /> سلة المشتريات
-                                    </h2>
-                                    <button onClick={() => setIsCartOpen(false)} className="p-2 hover:bg-gray-200 rounded-full transition-colors">
-                                        <X size={24} />
-                                    </button>
+                            {/* Customer Info Form */}
+                            <div className="space-y-3 border-t pt-4">
+                                <h3 className="font-bold text-gray-700 text-sm">2. معلومات التوصيل</h3>
+                                
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 mb-1">الاسم الكامل</label>
+                                    <input 
+                                        type="text" 
+                                        value={customerName}
+                                        onChange={(e) => setCustomerName(e.target.value)}
+                                        placeholder="اكتب اسمك هنا"
+                                        className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-orange-500 transition-colors"
+                                    />
                                 </div>
 
-                                <div className="flex-grow overflow-y-auto p-6">
-                                    {cart.length === 0 ? (
-                                        <div className="h-full flex flex-col items-center justify-center text-center text-gray-400 space-y-4">
-                                            <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center">
-                                                <ShoppingBag size={40} className="opacity-50" />
-                                            </div>
-                                            <p>السلة فارغة حالياً</p>
-                                            <Button variant="outline" onClick={() => { setIsCartOpen(false); setView('home'); scrollToProducts(); }}>
-                                                تصفح المنتجات
-                                            </Button>
-                                        </div>
-                                    ) : (
-                                        <div className="space-y-6">
-                                            {cart.map((item) => (
-                                                <div key={item.id} className="bg-gray-50 rounded-xl p-4 relative border border-gray-100 flex gap-4">
-                                                    <div className="w-20 h-20 bg-white rounded-lg overflow-hidden flex-shrink-0">
-                                                        <img src={item.product.images[0]} alt="" className="w-full h-full object-cover" />
-                                                    </div>
-                                                    <div className="flex-grow">
-                                                        <div className="flex justify-between items-start">
-                                                            <h3 className="font-bold text-gray-900">{item.product.name}</h3>
-                                                            <button onClick={() => removeFromCart(item.id)} className="text-red-400 hover:text-red-600">
-                                                                <X size={16} />
-                                                            </button>
-                                                        </div>
-                                                        <p className="text-sm text-gray-500 mt-1">الاسم: <span className="font-medium text-gray-900">{item.details.name}</span></p>
-                                                        <p className="text-xs text-gray-400 mt-1">{item.details.color} | {item.details.language}</p>
-                                                        <div className="mt-2 font-bold text-orange-600">{item.product.price.toLocaleString()} د.ع</div>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 mb-1">رقم الهاتف</label>
+                                    <input 
+                                        type="tel" 
+                                        value={customerPhone}
+                                        onChange={(e) => setCustomerPhone(e.target.value)}
+                                        placeholder="0770xxxxxxx"
+                                        className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-orange-500 transition-colors"
+                                    />
                                 </div>
 
-                                {cart.length > 0 && (
-                                    <div className="p-6 bg-white border-t border-gray-100 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
-                                        <div className="flex justify-between items-center mb-6 text-lg">
-                                            <span className="text-gray-600">المجموع الكلي:</span>
-                                            <span className="font-black text-2xl">{calculateTotal().toLocaleString()} د.ع</span>
-                                        </div>
-                                        <Button fullWidth onClick={handleCheckout} className="bg-green-600 hover:bg-green-700 shadow-green-500/30">
-                                            <span className="flex items-center gap-2">
-                                                تأكيد الطلب عبر واتساب <Phone size={18} />
-                                            </span>
-                                        </Button>
-                                        <p className="text-center text-xs text-gray-400 mt-3">الدفع عند الاستلام • توصيل مجاني لكل العراق</p>
-                                    </div>
-                                )}
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 mb-1">منطقة التوصيل</label>
+                                    <select 
+                                        value={JSON.stringify(selectedDelivery)}
+                                        onChange={(e) => setSelectedDelivery(JSON.parse(e.target.value))}
+                                        className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-orange-500 transition-colors appearance-none"
+                                    >
+                                        {DELIVERY_RATES.map((rate, idx) => (
+                                            <option key={idx} value={JSON.stringify(rate)}>
+                                                {rate.area} - {rate.price.toLocaleString()} {SHOP_INFO.currency}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 mb-1">العنوان / أقرب نقطة دالة</label>
+                                    <textarea 
+                                        value={address}
+                                        onChange={(e) => setAddress(e.target.value)}
+                                        placeholder="مثال: حي الزهور، قرب جامع..."
+                                        rows="2"
+                                        className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-orange-500 transition-colors resize-none"
+                                    ></textarea>
+                                </div>
                             </div>
                         </div>
                     )}
+                </div>
 
-                    <footer className="bg-gray-900 text-white py-12 mt-12">
-                        <div className="container mx-auto px-4 text-center">
-                            <div className="flex justify-center items-center gap-2 mb-6">
-                                <h2 className="text-3xl font-bold">محمد<span className="text-orange-500">نور</span></h2>
+                {cartItems.length > 0 && (
+                    <div className="p-4 border-t bg-gray-50 shadow-inner">
+                        <div className="space-y-1 mb-4 text-sm">
+                            <div className="flex justify-between text-gray-500">
+                                <span>مجموع المنتجات:</span>
+                                <span>{subtotal.toLocaleString()}</span>
                             </div>
-                            <p className="text-gray-400 mb-8 max-w-md mx-auto">
-                                متجر متخصص في الرسم اليدوي على المنتجات الشخصية. نسعى لتقديم قطع فنية فريدة تلامس الروح وتدوم طويلاً.
-                            </p>
-                            <div className="flex justify-center gap-6 mb-8">
-                                <a href={`https://instagram.com/${SHOP_INFO.instagram}`} className="w-12 h-12 bg-gray-800 rounded-full flex items-center justify-center hover:bg-orange-500 hover:text-white transition-all transform hover:-translate-y-1">
-                                    <Instagram size={24} />
-                                </a>
-                                <a href={`https://wa.me/${SHOP_INFO.whatsapp}`} className="w-12 h-12 bg-gray-800 rounded-full flex items-center justify-center hover:bg-green-500 hover:text-white transition-all transform hover:-translate-y-1">
-                                    <Phone size={24} />
-                                </a>
+                            <div className="flex justify-between text-gray-500">
+                                <span>التوصيل ({selectedDelivery.area}):</span>
+                                <span>{selectedDelivery.price.toLocaleString()}</span>
                             </div>
-                            <div className="border-t border-gray-800 pt-8 text-sm text-gray-500">
-                                © {new Date().getFullYear()} متجر محمدنور. جميع الحقوق محفوظة للفن والإبداع.
+                            <div className="flex justify-between font-black text-lg text-gray-900 border-t pt-2 mt-2">
+                                <span>المبلغ الكلي:</span>
+                                <span>{total.toLocaleString()} {SHOP_INFO.currency}</span>
                             </div>
                         </div>
-                    </footer>
+                        
+                        <button 
+                            onClick={handleWhatsAppCheckout}
+                            className="w-full bg-green-500 hover:bg-green-600 text-white py-3 rounded-xl font-bold shadow-lg shadow-green-500/30 flex items-center justify-center gap-2 transition-all transform active:scale-95"
+                        >
+                            <i className="fa-brands fa-whatsapp text-xl"></i> إرسال الطلب عبر واتساب
+                        </button>
+                    </div>
+                )}
+            </div>
+        </>
+    );
+};
+
+// 6. Footer & Info
+const DeliveryInfo = () => (
+    <section className="bg-white py-16 border-t">
+        <div className="container mx-auto px-4">
+            <h3 className="text-3xl font-black text-center mb-10">أسعار التوصيل</h3>
+            <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+                {DELIVERY_RATES.map((rate, idx) => (
+                    <div key={idx} className="bg-gray-50 p-6 rounded-2xl text-center border hover:border-orange-500 transition-colors group">
+                        <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm group-hover:bg-orange-500 group-hover:text-white transition-colors">
+                            <i className="fa-solid fa-truck-fast text-lg"></i>
+                        </div>
+                        <h4 className="font-bold text-lg mb-1">{rate.area}</h4>
+                        <p className="text-2xl font-black text-gray-800">{rate.price.toLocaleString()}</p>
+                    </div>
+                ))}
+            </div>
+        </div>
+    </section>
+);
+
+/* ================= MAIN APP ================= */
+function App() {
+    const [cart, setCart] = useState([]);
+    const [isCartOpen, setIsCartOpen] = useState(false);
+    const [selectedProduct, setSelectedProduct] = useState(null);
+
+    const addToCart = (product) => {
+        setCart([...cart, product]);
+        // Optional: Show simplified toast notification here
+    };
+
+    const removeFromCart = (index) => {
+        const newCart = [...cart];
+        newCart.splice(index, 1);
+        setCart(newCart);
+    };
+
+    return (
+        <div className="min-h-screen flex flex-col">
+            <Navbar cartCount={cart.length} onOpenCart={() => setIsCartOpen(true)} />
+            
+            <main className="flex-grow">
+                <Hero />
+                
+                <section id="products" className="container mx-auto px-4 py-20 -mt-10 relative z-20">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        {PRODUCTS.map(product => (
+                            <ProductCard 
+                                key={product.id} 
+                                product={product} 
+                                onSelect={() => setSelectedProduct(product)}
+                            />
+                        ))}
+                    </div>
+                </section>
+
+                <DeliveryInfo />
+            </main>
+
+            <footer className="bg-gray-900 text-white py-12 border-t border-gray-800">
+                <div className="container mx-auto px-4 text-center">
+                    <h2 className="text-2xl font-black mb-6">محمد<span className="text-orange-500">نور</span></h2>
+                    <div className="flex justify-center gap-6 mb-8">
+                        <a href={`https://instagram.com/${SHOP_INFO.instagram}`} target="_blank" className="w-12 h-12 rounded-full bg-gray-800 flex items-center justify-center hover:bg-pink-600 transition-colors">
+                            <i className="fa-brands fa-instagram text-xl"></i>
+                        </a>
+                        <a href={`https://wa.me/${SHOP_INFO.whatsapp}`} target="_blank" className="w-12 h-12 rounded-full bg-gray-800 flex items-center justify-center hover:bg-green-500 transition-colors">
+                            <i className="fa-brands fa-whatsapp text-xl"></i>
+                        </a>
+                    </div>
+                    <p className="text-gray-500 text-sm">© {new Date().getFullYear()} {SHOP_INFO.full_name} – صنع بحب في العراق</p>
                 </div>
-            );
-        }
+            </footer>
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
-    </script>
+            {/* Modals & Drawers */}
+            <ProductModal 
+                product={selectedProduct} 
+                isOpen={!!selectedProduct} 
+                onClose={() => setSelectedProduct(null)} 
+                onAddToCart={addToCart}
+            />
+            
+            <CartDrawer 
+                isOpen={isCartOpen} 
+                onClose={() => setIsCartOpen(false)} 
+                cartItems={cart}
+                onRemoveItem={removeFromCart}
+            />
+        </div>
+    );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
+</script>
 </body>
-
 </html>
-
